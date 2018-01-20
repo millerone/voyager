@@ -5,7 +5,9 @@ namespace TCG\Voyager\Traits;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use TCG\Voyager\Models\Translation;
+use Illuminate\Support\Str;
 use TCG\Voyager\Translator;
+use DB;
 
 trait Translatable
 {
@@ -209,7 +211,7 @@ trait Translatable
     public function setAttributeTranslations($attribute, array $translations, $save = false)
     {
         $response = [];
-
+        
         if (!$this->relationLoaded('translations')) {
             $this->load('translations');
         }
@@ -224,11 +226,16 @@ trait Translatable
 
             if ($locale == $default) {
                 $this->$attribute = $translations[$locale];
+                // if($attribute == "pdf"){
+                //     dd($this->$attribute);
+                // };
                 continue;
-            }
+            } 
 
             $tranlator = $this->translate($locale, false);
+            // dd($tranlator);
             $tranlator->$attribute = $translations[$locale];
+
 
             if ($save) {
                 $tranlator->save();
@@ -236,7 +243,7 @@ trait Translatable
 
             $response[] = $tranlator;
         }
-
+        // dd($response);
         return $response;
     }
 
@@ -295,25 +302,118 @@ trait Translatable
 
         // Translatable Fields
         $transFields = $this->getTranslatableAttributes();
+        
+//MIOOOOOO
+        $allLocales = config('voyager.multilingual.locales');
+        $json = json_decode($request->pdf_i18n, true);
+        $currentlang = [];
+        if($json){
+            foreach($allLocales as $key => $val)
+            {
+                if(!array_key_exists($val, $json))
+                {
+                    $currentlang[$val] = $allLocales[$key];
+                } 
+            }
+        }
+        
+//MIOOOOOO
+
 
         foreach ($transFields as $field) {
             $trans = json_decode($request->input($field.'_i18n'), true);
 
-            // Set the default local value
+//MIOOOOOO
+            $getPdf = json_decode($request->input('pdf_i18n'));
+            $stringlanguage = reset($currentlang);
+            $request->session()->put("adminLang",$stringlanguage);
+            if($field == "pdf"){
+                //dd($trans);
+                
+                if($stringlanguage != config('voyager.multilingual.default', 'en')){
+                    if ($files = $request->file($field)) {
+                        
+                        if (!is_array($files)) {
+                            $files = [$files];
+                        }
+                        $filesPath = [];
+                        foreach ($files as $key => $file) {
+                            $filename = Str::random(20);
+                            $path = 'wines/'.date('FY').'/';
+                            $file->storeAs(
+                                $path,
+                                $filename.'.'.$file->getClientOriginalExtension(),
+                                config('voyager.storage.disk', 'public')
+                            );
+                            array_push($filesPath, [
+                                'download_link' => $path.$filename.'.'.$file->getClientOriginalExtension(),
+                                'original_name' => $file->getClientOriginalName(),
+                            ]);
+                        }
+                       
+    
+                        $trans[$stringlanguage] = json_encode($filesPath);
+                       
+                    }
+                }/*else{
+                    $content = DB::table('wines')
+                        ->where('id', $this->id)
+                        ->first();
+                    dd($content->pdf);
+                    //$this->pdf = $content->pdf;
+                }*/
+
+
+               /* if (array_key_exists($stringlanguage, $getPdf)) {
+                    dd('ce sta');
+                } else {
+                    foreach ($request->file() as $file)
+                    {
+                        $filename = $file[0]->getClientOriginalName();
+                        $trans[$stringlanguage] = '[{\"download_link\":\"wines\\\/January2018\\\/n5rfdUHXqaEXmMX3rHQD.pdf\",\"original_name\":\.'.$filename.'}]';
+                        //dd($trans);
+                    }
+                }*/
+            }
+//MIOOOOOO
+
+            if(!array_key_exists("en",$trans)){
+                $trans["en"] = "";
+            }            
             $request->merge([$field => $trans[config('voyager.multilingual.default', 'en')]]);
+           
+
+//MIOOOOOO
+            // if($field == "pdf"){
+            //     $trans["en"] = "";
+            // }
+//MIOOOOOO
 
             $translations[$field] = $this->setAttributeTranslations(
                 $field,
                 $trans
             );
 
+        
+            /* if($field == "pdf"){
+                    $t = json_decode($request[$field.'_i18n'],true);
+                    $t["it"] = "";
+                    $request[$field.'_i18n'] = json_encode($t);
+                    echo '<xmp>';
+                    //print_r($_FILES);
+                    print_r($field);
+                    echo "</xmp><hr><xmp>";
+                    print_r($request[$field.'_i18n']);
+                    echo '</xmp>';
+                }*/
+            // echo $field.'</br>';
             // Remove field hidden input
             unset($request[$field.'_i18n']);
         }
 
         // Remove language selector input
         unset($request['i18n_selector']);
-
+       
         return $translations;
     }
 
