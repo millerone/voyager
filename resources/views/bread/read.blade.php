@@ -78,7 +78,7 @@
                                      {{ $rowDetails->options->{$item} . (!$loop->last ? ', ' : '') }}
                                     @endforeach
                                 @endif
-                            @elseif($row->type == 'date' || $row->type == 'timestamp')
+                            @elseif($row->type == 'date')
                                 {{ $rowDetails && property_exists($rowDetails, 'format') ? \Carbon\Carbon::parse($dataTypeContent->{$row->field})->formatLocalized($rowDetails->format) : $dataTypeContent->{$row->field} }}
                             @elseif($row->type == 'checkbox')
                                 @if($rowDetails && property_exists($rowDetails, 'on') && property_exists($rowDetails, 'off'))
@@ -98,17 +98,31 @@
                                 @include('voyager::multilingual.input-hidden-bread-read')
                                 <p>{!! $dataTypeContent->{$row->field} !!}</p>
                             @elseif($row->type == 'file')
-                                @if(json_decode($dataTypeContent->{$row->field}))
-                                    @foreach(json_decode($dataTypeContent->{$row->field}) as $file)
-                                        <a href="/storage/{{ $file->download_link or '' }}">
-                                            {{ $file->original_name or '' }}
-                                        </a>
-                                        <br/>
-                                    @endforeach
+                                @if($row->field == 'pdf')
+
+                                    @if( $dataTypeContent->getPdfPath() != null )
+                                            @foreach(json_decode($dataTypeContent->getPdfPath()) as $file)
+                                                <a class="fileType" id="pdf_i18n_link" data-wine-id="{{$dataTypeContent->id}}" target="_blank" href="{{ Storage::disk(config('voyager.storage.disk'))->url($file->download_link) ?: '' }}"> {{ $file->original_name ?: '' }} </a>
+                                            @endforeach
+                                        
+                                    @endif
+                                
+                                
                                 @else
-                                    <a href="/storage/{{ $dataTypeContent->{$row->field} }}">
-                                        Download
-                                    </a>
+
+
+                                    @if(json_decode($dataTypeContent->{$row->field}))
+                                        @foreach(json_decode($dataTypeContent->{$row->field}) as $file)
+                                            <a href="/storage/{{ $file->download_link or '' }}">
+                                                {{ $file->original_name or '' }}
+                                            </a>
+                                            <br/>
+                                        @endforeach
+                                    @else
+                                        <a href="/storage/{{ $dataTypeContent->{$row->field} }}">
+                                            Download
+                                        </a>
+                                    @endif
                                 @endif
                             @else
                                 @include('voyager::multilingual.input-hidden-bread-read')
