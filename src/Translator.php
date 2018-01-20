@@ -56,6 +56,9 @@ class Translator implements ArrayAccess
         $savings = [];
 
         foreach ($attributes as $key => $attribute) {
+           
+            $lang = $attribute['locale'];
+
             if ($attribute['exists']) {
                 $translation = $this->getTranslationModel($key);
             } else {
@@ -116,6 +119,15 @@ class Translator implements ArrayAccess
             ->first();
     }
 
+/* 
+    public function getTranslationModel($key, $locale = null)
+    {
+        return $this->model->getRelation('translations')
+            ->where('column_name', $key)
+            ->where('locale', $locale ? $locale : $this->locale)
+            ->first();
+    }
+ */
     public function getModifiedAttributes()
     {
         return collect($this->attributes)->where('modified', 1)->all();
