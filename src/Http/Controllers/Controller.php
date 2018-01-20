@@ -44,7 +44,7 @@ abstract class Controller extends BaseController
         $translations = is_bread_translatable($data)
                         ? $data->prepareTranslations($request)
                         : [];
-
+        //dd($data);
         foreach ($rows as $row) {
             $options = json_decode($row->details);
 
@@ -59,7 +59,7 @@ abstract class Controller extends BaseController
             if ($row->type == 'relationship' && $options->type != 'belongsToMany') {
                 $row->field = @$options->column;
             }
-
+            
             /*
              * merge ex_images and upload images
              */
@@ -172,27 +172,36 @@ abstract class Controller extends BaseController
 
             /********** FILE TYPE **********/
             case 'file':
-                if ($files = $request->file($row->field)) {
-                    if (!is_array($files)) {
-                        $files = [$files];
-                    }
-                    $filesPath = [];
-                    foreach ($files as $key => $file) {
-                        $filename = Str::random(20);
-                        $path = $slug.'/'.date('FY').'/';
-                        $file->storeAs(
-                            $path,
-                            $filename.'.'.$file->getClientOriginalExtension(),
-                            config('voyager.storage.disk', 'public')
-                        );
-                        array_push($filesPath, [
-                            'download_link' => $path.$filename.'.'.$file->getClientOriginalExtension(),
-                            'original_name' => $file->getClientOriginalName(),
-                        ]);
-                    }
+                $stringlanguage = $request->session()->get("adminLang");
 
-                    return json_encode($filesPath);
+                if($stringlanguage == config('voyager.multilingual.default', 'en')){
+                    if ($files = $request->file($row->field)) {
+                        if (!is_array($files)) {
+                            $files = [$files];
+                        }
+                        $filesPath = [];
+                        foreach ($files as $key => $file) {
+                            $filename = Str::random(20);
+                            $path = $slug.'/'.date('FY').'/';
+                            $file->storeAs(
+                                $path,
+                                $filename.'.'.$file->getClientOriginalExtension(),
+                                config('voyager.storage.disk', 'public')
+                            );
+                            array_push($filesPath, [
+                                'download_link' => $path.$filename.'.'.$file->getClientOriginalExtension(),
+                                'original_name' => $file->getClientOriginalName(),
+                            ]);
+                        }
+
+                        return json_encode($filesPath);
+                    }else{
+                        if($row->field == "pdf"){
+                            return $request->pdf_original;
+                        }
+                    }
                 }
+                break;
             /********** MULTIPLE IMAGES TYPE **********/
             // no break
             case 'multiple_images':
@@ -308,6 +317,7 @@ abstract class Controller extends BaseController
             /********** IMAGE TYPE **********/
             case 'image':
                 if ($request->hasFile($row->field)) {
+                    
                     $file = $request->file($row->field);
                     $options = json_decode($row->details);
 
