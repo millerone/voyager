@@ -8,6 +8,7 @@
     <meta name="description" content="admin login">
     <title>Admin - {{ Voyager::setting("admin.title") }}</title>
     <link rel="stylesheet" href="{{ voyager_asset('css/app.css') }}">
+    <link href="{{ asset('css/custom-admin.css') }}" rel="stylesheet">
     <style>
         body {
             background-image:url('{{ Voyager::image( Voyager::setting("admin.bg_image"), voyager_asset("images/bg.jpg") ) }}');
